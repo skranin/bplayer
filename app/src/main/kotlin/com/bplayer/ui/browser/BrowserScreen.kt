@@ -40,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,6 +56,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
@@ -83,6 +86,7 @@ fun BrowserRoute(
 
     val vm: BrowserViewModel = viewModel()
     LaunchedEffect(current.uri) { vm.load(current.uri, current.title) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     val state by vm.state.collectAsStateWithLifecycle()
     val playbackState by app.playback.state.collectAsStateWithLifecycle()
 
@@ -153,10 +157,12 @@ fun BrowserRoute(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
+        var pendingDelete by remember { mutableStateOf<BrowseEntry?>(null) }
         when {
-            state.isLoading -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            state.isLoading && state.entries.isEmpty() -> Box(
+                Modifier.fillMaxSize().padding(padding),
+                Alignment.Center,
+            ) { CircularProgressIndicator() }
             state.entries.isEmpty() -> Box(
                 Modifier.fillMaxSize().padding(padding),
                 Alignment.Center,
@@ -166,8 +172,11 @@ fun BrowserRoute(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            else -> {
-                var pendingDelete by remember { mutableStateOf<BrowseEntry?>(null) }
+            else -> PullToRefreshBox(
+                isRefreshing = state.isLoading,
+                onRefresh = { vm.refresh() },
+                modifier = Modifier.fillMaxSize(),
+            ) {
                 EntryList(
                     entries = state.entries,
                     contentPadding = padding,
@@ -194,31 +203,25 @@ fun BrowserRoute(
                     onResetClick = { vm.resetProgress(it) },
                     onDeleteClick = { pendingDelete = it },
                 )
-                pendingDelete?.let { target ->
-                    AlertDialog(
-                        onDismissRequest = { pendingDelete = null },
-                        title = { Text(stringResource(R.string.confirm_delete_title)) },
-                        text = {
-                            Text(
-                                stringResource(R.string.confirm_delete_body, target.name),
-                            )
-                        },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                vm.delete(target) { /* refresh handled in VM */ }
-                                pendingDelete = null
-                            }) {
-                                Text(stringResource(R.string.delete))
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { pendingDelete = null }) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                        },
-                    )
-                }
             }
+        }
+        pendingDelete?.let { target ->
+            AlertDialog(
+                onDismissRequest = { pendingDelete = null },
+                title = { Text(stringResource(R.string.confirm_delete_title)) },
+                text = { Text(stringResource(R.string.confirm_delete_body, target.name)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        vm.delete(target) { /* refresh handled in VM */ }
+                        pendingDelete = null
+                    }) { Text(stringResource(R.string.delete)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDelete = null }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                },
+            )
         }
     }
 }

@@ -23,6 +23,12 @@ class BrowserViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(BrowserUiState())
     val state: StateFlow<BrowserUiState> = _state.asStateFlow()
 
+    /** Re-scan the currently-open folder. No-op until [load] has set a current folder. */
+    fun refresh() {
+        val current = _state.value.currentFolder ?: return
+        load(current, _state.value.title)
+    }
+
     fun resetProgress(entry: BrowseEntry) {
         val key = entry.bookKey ?: return
         app.playback.resetIfCurrent(key)
