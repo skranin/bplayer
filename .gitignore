@@ -1,0 +1,13 @@
+*.iml
+.gradle/
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+.kotlin/
+
+# Room schemas (auto-generated; not needed without migrations)
+app/schemas/

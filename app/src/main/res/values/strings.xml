@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BPlayer</string>
+    <string name="pick_root_title">Pick your media root</string>
+    <string name="pick_root_body">Choose a folder containing your books and music. BPlayer remembers it across launches.</string>
+    <string name="pick_root_action">Choose folder</string>
+    <string name="change_root">Change root</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="next_track">Next</string>
+    <string name="previous_track">Previous</string>
+    <string name="back">Back</string>
+    <string name="empty_folder">Nothing playable here</string>
+    <string name="now_playing">Now playing</string>
+    <string name="library_root">Library</string>
+    <string name="delete">Delete</string>
+    <string name="reset_progress">Reset progress</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm_delete_title">Delete?</string>
+    <string name="confirm_delete_body">Permanently delete \"%1$s\"? Folders are deleted with all their contents.</string>
+</resources>
