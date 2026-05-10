@@ -42,6 +42,10 @@ the phone:
 
 BPlayer then appears in the car's media app picker.
 
+## License
+
+MIT — see [LICENSE](LICENSE). Free to use, modify, and redistribute.
+
 ## How resume works
 
 Bookmarks are keyed by the book's folder URI (or file URI for a loose `.m4b`).
