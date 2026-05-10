@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Refuses commit messages containing claude/anthropic mentions or non-noreply emails.
+set -euo pipefail
+
+msg_file="$1"
+content="$(cat "$msg_file")"
+declare -a fail_msgs=()
+
+if echo "$content" | grep -qiE '\b(claude|anthropic)\b'; then
+    fail_msgs+=("commit message mentions 'claude' or 'anthropic'")
+fi
+
+# Non-noreply emails in commit message body (Co-Authored-By: real@person.com etc.).
+leaked_emails="$(echo "$content" \
+    | grep -oEi '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' \
+    | grep -viE '@(users\.noreply\.github\.com|example\.com|example\.org)$' || true)"
+if [ -n "$leaked_emails" ]; then
+    fail_msgs+=("non-noreply email in commit message:")
+    while IFS= read -r e; do fail_msgs+=("  $e"); done <<< "$leaked_emails"
+fi
+
+if [ "${#fail_msgs[@]}" -gt 0 ]; then
+    echo "commit-msg: blocked." >&2
+    printf -- '  - %s\n' "${fail_msgs[@]}" >&2
+    echo "Edit the commit message or use --no-verify to bypass." >&2
+    exit 1
+fi
+
+exit 0

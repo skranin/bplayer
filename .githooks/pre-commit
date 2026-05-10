@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Pre-commit guard. Refuses commits that contain secrets or other unwanted content.
+# Wire up once per clone with: git config core.hooksPath .githooks
+set -euo pipefail
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "pre-commit: gitleaks not on PATH. Install: brew install gitleaks" >&2
+    exit 1
+fi
+
+# 1. Secret scan via gitleaks against staged changes only.
+#    --staged scans diffs about to be committed. --redact hides matched values
+#    in the report so they don't echo into the terminal scrollback.
+if ! gitleaks protect --staged --redact --no-banner; then
+    echo "pre-commit: gitleaks flagged staged content. Aborting." >&2
+    exit 1
+fi
+
+# 2. Custom regex checks beyond gitleaks' default ruleset.
+#    Read staged diff content for added lines only ("^+") and pattern-match.
+staged_added="$(git diff --cached --no-color --no-ext-diff -U0 -- ':!.githooks' \
+    | grep -E '^\+' | grep -vE '^\+\+\+ ' || true)"
+
+if [ -n "$staged_added" ]; then
+    declare -a fail_msgs=()
+
+    if echo "$staged_added" | grep -qE '/Users/[a-z0-9_-]+/'; then
+        fail_msgs+=("absolute /Users/<name>/ path detected — likely a leaked local filesystem path")
+    fi
+
+    # Any email except GitHub noreply / example.com.
+    leaked_emails="$(echo "$staged_added" \
+        | grep -oEi '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' \
+        | grep -viE '@(users\.noreply\.github\.com|example\.com|example\.org)$' || true)"
+    if [ -n "$leaked_emails" ]; then
+        fail_msgs+=("non-noreply email detected:")
+        while IFS= read -r e; do fail_msgs+=("  $e"); done <<< "$leaked_emails"
+    fi
+
+    if echo "$staged_added" | grep -qiE '\b(claude|anthropic)\b'; then
+        fail_msgs+=("'claude' or 'anthropic' string detected — repo policy keeps these out")
+    fi
+
+    if [ "${#fail_msgs[@]}" -gt 0 ]; then
+        echo "pre-commit: blocked." >&2
+        printf -- '  - %s\n' "${fail_msgs[@]}" >&2
+        echo "If a match is intentional, bypass with: git commit --no-verify" >&2
+        exit 1
+    fi
+fi
+
+exit 0

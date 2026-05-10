@@ -42,6 +42,21 @@ the phone:
 
 BPlayer then appears in the car's media app picker.
 
+## Pre-commit hook
+
+The repo ships with a pre-commit guard at `.githooks/pre-commit` that blocks
+commits containing secrets, absolute `/Users/<name>/` paths, or non-noreply
+email addresses. It runs `gitleaks` plus a small set of custom regex checks.
+
+After cloning, enable it once:
+
+```sh
+brew install gitleaks   # one-time, if not installed
+git config core.hooksPath .githooks
+```
+
+If a match is intentional, bypass with `git commit --no-verify`.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Free to use, modify, and redistribute.
