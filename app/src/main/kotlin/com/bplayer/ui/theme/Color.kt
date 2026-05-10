@@ -2,13 +2,23 @@ package com.bplayer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Surface0 = Color(0xFF0F1115)
-val Surface1 = Color(0xFF15181E)
-val Surface2 = Color(0xFF1C2129)
-val Surface3 = Color(0xFF252B36)
-val Outline = Color(0xFF2F3744)
+// Brand red (matches the launcher icon disc).
+val BrandRed = Color(0xFFE53935)
+val BrandRedDeep = Color(0xFFC62828)
+val BrandRedSoft = Color(0xFFFFCDD2)
 
-val Accent = Color(0xFF7DB3FF)
-val AccentMuted = Color(0xFF4B6A99)
-val OnSurface = Color(0xFFE6E8EE)
-val OnSurfaceMuted = Color(0xFF8C95A6)
+// Dark scheme — true-black background reads well on OLED.
+val DarkBg = Color(0xFF000000)
+val DarkSurface = Color(0xFF111418)
+val DarkSurfaceVariant = Color(0xFF1C2129)
+val OnDark = Color(0xFFE6E8EE)
+val OnDarkMuted = Color(0xFF8C95A6)
+val DarkOutline = Color(0xFF2F3744)
+
+// Light scheme.
+val LightBg = Color(0xFFFAFAFA)
+val LightSurface = Color(0xFFFFFFFF)
+val LightSurfaceVariant = Color(0xFFEEEEEE)
+val OnLight = Color(0xFF1A1A1A)
+val OnLightMuted = Color(0xFF606060)
+val LightOutline = Color(0xFFD0D0D0)
