@@ -11,3 +11,8 @@ local.properties
 
 # Room schemas (auto-generated; not needed without migrations)
 app/schemas/
+
+# Release signing — keep credentials out of git.
+keystore.properties
+*.jks
+*.keystore
