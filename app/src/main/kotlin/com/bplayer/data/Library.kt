@@ -84,27 +84,18 @@ class Library(private val context: Context) {
     /** Walk one folder level and classify children for the browser screen. */
     fun browse(folderUri: Uri): List<BrowseEntry> {
         val children = listChildren(folderUri)
-        Log.d(TAG, "browse: $folderUri -> ${children.size} children")
-        val mimeCounts = children.groupingBy { it.mimeType }.eachCount()
-        Log.d(TAG, "browse: mime counts = $mimeCounts")
-
         val folders = ArrayList<RawDoc>()
         val audio = ArrayList<RawDoc>()
         val images = ArrayList<RawDoc>()
-        val unknown = ArrayList<RawDoc>()
 
         for (d in children) {
             when {
-                d.name.startsWith(".") -> { /* skip dotfiles/dotfolders: .DS_Store, .stfolder, .thumbnails, .nomedia */ }
+                // Skip dotfiles/dotfolders: .DS_Store, .stfolder, .thumbnails, .nomedia, etc.
+                d.name.startsWith(".") -> {}
                 d.isDir -> folders += d
                 d.isAudio -> audio += d
                 d.isImage -> images += d
-                else -> unknown += d
             }
-        }
-        Log.d(TAG, "browse: folders=${folders.size} audio=${audio.size} images=${images.size} unknown=${unknown.size}")
-        if (unknown.isNotEmpty()) {
-            Log.d(TAG, "browse: unknown sample = ${unknown.take(5).map { "${it.name}(${it.mimeType})" }}")
         }
 
         val out = ArrayList<BrowseEntry>()
@@ -141,7 +132,6 @@ class Library(private val context: Context) {
             }
         }
 
-        Log.d(TAG, "browse: emitted ${out.size} entries")
         return out
     }
 

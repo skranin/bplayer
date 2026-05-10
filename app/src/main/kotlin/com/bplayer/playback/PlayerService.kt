@@ -3,7 +3,6 @@ package com.bplayer.playback
 import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
-import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -32,8 +31,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-private const val TAG = "BPlayer"
 
 class PlayerService : MediaLibraryService() {
 
@@ -260,7 +257,6 @@ class PlayerService : MediaLibraryService() {
         startPositionMs: Long,
     ): MediaSession.MediaItemsWithStartPosition {
         val resolved = mediaItems.flatMap { expandIfNeeded(it) }
-        Log.d(TAG, "resolve: incoming=${mediaItems.map { it.mediaId }} resolved=${resolved.size}")
         if (resolved.isEmpty()) {
             return MediaSession.MediaItemsWithStartPosition(emptyList(), 0, 0L)
         }
@@ -272,7 +268,6 @@ class PlayerService : MediaLibraryService() {
         ) seedId else null
         if (bookKey != null) {
             val bm = bookmarkDao.get(bookKey)
-            Log.d(TAG, "resolve: lookup bookKey=$bookKey -> ${if (bm != null) "pos=${bm.positionMs} file=${bm.currentFileUri}" else "none"}")
             if (bm != null) {
                 val idx = resolved.indexOfFirst {
                     it.localConfiguration?.uri.toString() == bm.currentFileUri
@@ -291,31 +286,27 @@ class PlayerService : MediaLibraryService() {
 
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
-            Log.d(TAG, "onMediaItemTransition reason=$reason newItem=${item?.mediaId}")
-            saveBookmarkAsync("transition")
+            saveBookmarkAsync()
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            Log.d(TAG, "onIsPlayingChanged isPlaying=$isPlaying")
             if (isPlaying) startTicks() else {
                 stopTicks()
-                saveBookmarkAsync("pause")
+                saveBookmarkAsync()
             }
         }
 
         override fun onPlaybackStateChanged(state: Int) {
-            Log.d(TAG, "onPlaybackStateChanged state=$state")
-            if (state == Player.STATE_ENDED) saveBookmarkAsync("ended")
+            if (state == Player.STATE_ENDED) saveBookmarkAsync()
         }
     }
 
     private fun startTicks() {
         if (tickJob?.isActive == true) return
-        Log.d(TAG, "startTicks")
         tickJob = scope.launch {
             while (true) {
                 delay(10_000)
-                withContext(Dispatchers.Main) { saveBookmarkSnapshot("tick") }?.let { snap ->
+                withContext(Dispatchers.Main) { saveBookmarkSnapshot() }?.let { snap ->
                     bookmarkDao.upsert(snap)
                 }
             }
@@ -323,30 +314,16 @@ class PlayerService : MediaLibraryService() {
     }
 
     private fun stopTicks() {
-        Log.d(TAG, "stopTicks")
         tickJob?.cancel()
         tickJob = null
     }
 
     /** Take a bookmark snapshot from the player on the main thread. */
-    private fun saveBookmarkSnapshot(reason: String): Bookmark? {
-        val item = player.currentMediaItem
-        if (item == null) {
-            Log.d(TAG, "snapshot[$reason]: no currentMediaItem")
-            return null
-        }
-        val bookKey = MediaItemFactory.bookKeyOf(item)
-        if (bookKey == null) {
-            Log.d(TAG, "snapshot[$reason]: no bookKey on ${item.mediaId}")
-            return null
-        }
-        val fileUri = item.localConfiguration?.uri
-        if (fileUri == null) {
-            Log.d(TAG, "snapshot[$reason]: no localConfiguration for ${item.mediaId}")
-            return null
-        }
+    private fun saveBookmarkSnapshot(): Bookmark? {
+        val item = player.currentMediaItem ?: return null
+        val bookKey = MediaItemFactory.bookKeyOf(item) ?: return null
+        val fileUri = item.localConfiguration?.uri ?: return null
         val pos = player.currentPosition.coerceAtLeast(0L)
-        Log.d(TAG, "snapshot[$reason]: bookKey=$bookKey file=$fileUri pos=$pos")
         return Bookmark(
             bookKey = bookKey,
             currentFileUri = fileUri.toString(),
@@ -355,19 +332,20 @@ class PlayerService : MediaLibraryService() {
         )
     }
 
-    private fun saveBookmarkAsync(reason: String) {
-        val snap = saveBookmarkSnapshot(reason) ?: return
+    private fun saveBookmarkAsync() {
+        val snap = saveBookmarkSnapshot() ?: return
         scope.launch { bookmarkDao.upsert(snap) }
     }
 
-    /** Synchronously snapshot + save before the player swaps queues. Reads on Main, writes on IO blockingly so the new queue doesn't race ahead. */
+    // Snapshots+saves *before* the player swaps queues, blocking briefly on the IO write so
+    // the outgoing book's position lands before the new queue replaces currentMediaItem.
     private fun saveBookmarkBeforeSwap() {
-        val snap = saveBookmarkSnapshot("before-swap") ?: return
+        val snap = saveBookmarkSnapshot() ?: return
         kotlinx.coroutines.runBlocking { bookmarkDao.upsert(snap) }
     }
 
     private fun saveBookmarkBlocking() {
-        val snap = saveBookmarkSnapshot("destroy") ?: return
+        val snap = saveBookmarkSnapshot() ?: return
         kotlinx.coroutines.runBlocking { bookmarkDao.upsert(snap) }
     }
 }
