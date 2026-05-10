@@ -13,7 +13,9 @@ fi
 # Non-noreply emails in commit message body (Co-Authored-By: real@person.com etc.).
 leaked_emails="$(echo "$content" \
     | grep -oEi '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}' \
-    | grep -viE '@(users\.noreply\.github\.com|example\.com|example\.org)$' || true)"
+    | grep -viE '@(users\.noreply\.github\.com|example\.com|example\.org)$' \
+    | grep -viE '^(git|hg|svn)@(github\.com|gitlab\.com|bitbucket\.org|codeberg\.org)$' \
+    || true)"
 if [ -n "$leaked_emails" ]; then
     fail_msgs+=("non-noreply email in commit message:")
     while IFS= read -r e; do fail_msgs+=("  $e"); done <<< "$leaked_emails"

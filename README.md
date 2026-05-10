@@ -57,6 +57,21 @@ git config core.hooksPath .githooks
 
 If a match is intentional, bypass with `git commit --no-verify`.
 
+## Setting up on a new machine
+
+The git repo doesn't carry the upload keystore or its password — both are
+gitignored. After cloning to a new machine:
+
+```sh
+git clone git@github.com:skranin/bplayer.git
+cd bplayer
+git config core.hooksPath .githooks            # re-enable pre-commit hook
+# copy upload-keystore.jks from your backup → project root
+# copy or recreate keystore.properties → project root
+```
+
+`./gradlew :app:bundleRelease` then produces a signed AAB as usual.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Free to use, modify, and redistribute.
