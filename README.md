@@ -11,8 +11,8 @@ Other things it does:
 
 - Tree-based browser: pick any root folder via the system folder picker; subfolders
   with subfolders drill in, subfolders with audio files play, single files play directly.
-- Russian-locale natural sort (e.g. chapter `01.mp3 … 10.mp3` and Cyrillic names sort
-  alphabetically rather than by Unicode code point).
+- Natural numeric sort for filenames (e.g. chapter `01.mp3 … 10.mp3` instead of
+  `01, 10, 02`).
 - Cover art picked from `Cover.jpg` / `Front.jpg` / `Folder.jpg` / first jpg in folder.
 - Per-row delete (recursive for folders) and reset-progress actions.
 - Full-screen Now Playing with draggable scrubber.
